@@ -337,3 +337,209 @@ both can be found in the class by calling .aic(data) or .bic(data) the lower the
 you could alternatively use Bayesian Gaussian Mixture Models
 from sklearn.mixture import BayesianGaussianMixture
 which automatically tries to find the best number of clusters needed for the data
+
+### PART 2: NEURAL NETWORKS:
+
+Chapter 10:
+composition of Artificial Neural Networks.. with an input layer, hidden layers and an output layer.
+each layer is composed of neurons that calculate a specific function called activation functions. these neurons get activated when a certain number of inputs goes into them.
+the simplest form of a neuron is called a perceptron that returns a value between 0 and 1
+each neuron will take as input a vector of values, and has as parameters a vector of weights for each vector + 1 bias parameter
+the perceptron adds to the calculations of this a heap function or step function that convert the end result into 0 or 1 where if the result is > 0 ut returns 1 else 0
+you can mess around with the Perceptron class in sklearn.Linear_model.Perceptron
+the layers of an ANN are represented as an input layer with is the train data generally 
+multiple hidden layers in the middle that feed its output to another layer (when all the results are input into another layer its called a deep neural network)
+an output layer which could be your prediction of a confidence score.
+
+the way ANNs are trained is with backpropagation which uses GD to calculate the step and tweak the parameters of each neuron by taking a batch of samples
+passing first through the layers and keeping track of the weights that contributed the most to the output and tuning their weights.
+the neurons parameters need be randomized when starting so that they are not correlated and result to the same neuron in every layer.
+
+an MLP is a multi layer perceptron neural network which can be used for classification and regression tasks
+can be imported in sci-kit learn through
+from sklearn.neural_networks import MLPRegressor | MLPClassifier
+
+but because thats lame we grow up and use Kerras in Tensorflow 
+to create models in Tensorflow we can use 3 ways:
+Sequential:
+tf.keras.Sequential()
+where you can add layers with tf.keras.layers (input layers, Flatten, Dense layers,) and giving out their Neuron number and activation function
+by calling add to the sequential model or through a list inside Sequential([layers])
+you can return the details of the model by calling summary() on model
+you can return the layers of the model by calling layers
+you can return the weights and biases by calling get_weights()
+
+lastly after generating a model you will need to compile it by calling compile() and setting the loss function, optimizer and metrics you wanna check on while running the model
+lastly you will be able to train the model by calling fit(train,test, epochs, validation_data=(X_valid,y_valid)) and can give out a validation data for the metrics
+calling fit returns the history which is the data of each epoch that can be used to evaluate the performance of your model through out the training time.
+you can find the parameters through history.params, epochs through history.epochs, and a dictionary for evyrthing through history.history that can be used to visualize the stats on pandas
+to test predictions you would call the predict() function that returns the predictions
+
+Functional:
+where you declare every layer as a variable alone for example
+Input_layer = tf.keras.layers.{LAYER NAME}
+hidden_layer = tf.keras.layers.Dense(n_neurons)
+output_layer = tf.keras.layers.Dense(n_neurons)
+
+then getting the output of each layer by feeding it the input layer of another:
+input_ = Input_Layer[X_train]
+hidden = hidden_layer[input_]
+output = output_layer[hidden]
+
+(_ is written after input to not overwrite the default Input function of python)
+and finally you can create your model by calling Model on keras and setting the input and output layers
+model = tf.keras.Model(inputs=[input_], outputs=[output])
+and compiling it
+model.compile(loss, optimizer, metrics) 
+and train and test just like the Sequential model
+
+Functional models allow you to customize the input and output and leaves you more freedom to mess around with the layers of the ANN which is why its better than sequential in complex architecturial models
+for example in the case of wanting to get multiple output layers since your model had 3 output neurons you would give out a list of 3 outputs when building the model
+
+and itha nta m9wed you can write the model as a subclass of tf.keras.Model with
+class MyModel(tf.keras.Model):
+    def __init__() where you can set the layers of the model
+    def call() where you can return any result you want like a raito between the result of a metric on train and valid and others
+
+the Model class needs to have a call() method for it to work but generally it is recommended to use sequential or functional methods as its more flexible to work around with compared to hard coding the layers in a class
+
+NOTE THAT PREPROCESSING LAYERS LIKE NORMALIZERS ETC NEED TO BE ADAPTED TO THE DATA BEFORE TRAINING AND PREDICTING
+
+to save a model you can call the model.save() function of the model which will save the entire model and to load it you just call keras.models.load_model(model_name) to return the model and its parameters for each neuron
+else you could also call save_weights() which is more lightweight and saves the connections weights biases prerocessing optimizers etc which will be very useful for callbacks
+
+Callbacks:
+in the fit function of a model you could add a callbacks parameters which allows you to save edit or extract information while training the model for example adding a checkpoint for the model to track
+its progress in case a crash happens or using earlystoppind to stop the training in case there is no improvement or the model starts to overfit
+you can find all the callback methods that are built in in keras.callbacks or you could write your own callback function with keras.callbacks.Callback
+
+when creating a callback class you have access to on_train_begin on_train_end functions that when the model starts to fit or predict or evauluate the functions will get executed for each epoch
+
+Lastly you could use TensorBoard which is a webui that reads the checkpoints left in the directories and is useful to visually and track the models progress and get info from the model
+since im lazy i wont explain how its done and will rely on god to find out how to set it up in any projecting
+
+Neural Networks Hyperparameters fine tuning:
+you can either use scikerras to wrap your model into a scikitlearn model and use grid and randomized search on it or use 
+keras_tuner named as kt
+kt is a function that does random search by calling kt.RandomSearch(model_builder, max_trials, overwrite, directory, project_name) where you can feed it a model_builder function that creates your model
+given random instances of how many layers neurons and activation funcitions and optimizers and your tuner will randomly select these parameters and return the result of each neural network
+you can extract the best model with get_best_models(num_models) and find the parameters with get_best_hyperparameters()
+
+each tuner is guided by an oracle which tells the tuner what the next random search parameters should be and keeps track of the trials of the random search
+returned by calling get_best_trials() and calling summary() to find a summary of the trial
+
+in case you have data preprocessing you might use a different method that model_builder function which is creating a sub class of kt.HyperModel which needs a build function that works just like the model_build function
+and a fit function which can have hyperparameter tuning for preprocessing data and returns the fit method for the main model
+
+some tips for selecting hyperparameters:
+the number of layers depends on the task at hand but a good way to pick a number is to start with 1 hidden layer and increase the size until your model overfits
+the number of neurons per layer should generally be less than the inputs and could either converge to a smaller number or every layer could contain the same number of neurons
+learning rate just start small and gradually build up (note changing any other hyperparameter will change how the learning rate is affected so remember to change it when modifying any other parameter)
+batch-size could be a number between 2 and 32 or the maximum your gpu ram could take in in both cases the performance doesnt change a lot
+activation function ReLU is generally good for the hidden layers as for the ouput it depends on the task at hand as for the output if its multi output classification use softmax if its binary classification use sigmoind
+Number of iterations only used for early stopping and doesnt really need to be tweaked
+
+Chapter 11:
+in this chapter we will meet with the great antagonist vanishing/exploding gradient problems where the calculation of derivatives for gradient decent may either get almost to a 0 value or explode to a very high value which may result in divergence
+this will result in weird weight training being weird (very slow for vanishing and too extreme and chaotic for exploding) this has many causes one of them is the activation function and the other is due to weight initialization
+to fix this we present the following methods to optimize the way neurons learn:
+
+Glorot and He Initialization:
+Glorot: assuming the sigmoid or tanh funciton is used as active functions or other linear activations
+where the weights will be initialized in a Nomral or uniform distribution where the variance is 1/fan_avg or r is the sqrt(3/fan_avg) for normal distribution
+with fan_avg being fan_in / fan_out called the xavier initialization (fan_in stands for the number of inputs and fan_out stands for the number of output)
+replacing fan_avg with fan_in will give you LeCun initialization for the nerds who wanna know how it works  
+He: assuming the ReLU or any of its families is used as acive functions 
+the weights will be initialized in a Normale or uniform distribution where the variance is 2/fan_in or r is the sqrt(6_fan_in) for the normal distribution
+to use these Initialization techniques you would need to only add kernel_initializer="initializer name" to your layers
+you could also check out VarianceScaling for more freedom on the weight initialization 
+
+Better Activation Functions:
+ReLU is kinda ass since its shape can cause some neurons to die (weight is just 0) this happens when ReLU inputs is negative for all
+instead of this we can use variations of ReLU:
+LeakyReLU: leaves a small leak with the parameter a that determines the scale of the "leakage" on the negative, where it takes max(az,z)
+Random LeakyReLU: alpha is randomized for each neuron and pickes as a mean in testing
+Parametric Leaky ReLU (PReLU): same as LeakyReLU only difference is a is a parameter that can be trained in backpropagation instead of being set by the user
+to use these functions you could find LeakyReLU and PReLU as layers in keras.layers (use He Initialiazation) Random ReLU is not in keras yet
+
+these functions suffer from one main thing which is that they are not smooth and abruptly change at z=0 for that we have alternatives like the following:
+
+ELU: exponential Linear Unit where when z<0 ELU=a(exp(z)-1) which gives a smooth curve on the negative. ELU has many amazing properties like taking on negatize z values,
+nonzero gradient which removes the issue of dead neurons and for a=1 the function is smooth everywhere
+scaled ELU (SELU): same as ELU with some scaling (a=1.67 so about 1.05 ELU) this function helps self normalize its outputs with some conditions:
+standarized inputs, initialization must be with LeCun_normal, works with MLPs, without regularization. under these conditions SELU would outperform any other neural network
+to use them just call the activaion parameter on the layers "elu" or "selu"
+
+GELU: another smooth variant of ReLU with the formula z*CDF(z). goated function for complex tasks as gradient decent might find it easier to fit complex patterns
+Swish: even more goated than GELU with the formula z*std(beta*z) with beta a hyperparameter, the scaling of Beta helps even more with gradient decent 
+Mish: z*tanh(softplus(z)), same goat as GELU and Swish and outperformed the others, takes the best of GELU and Swish in a way
+keras supports activation="gelu" and "swish" but not mish yet.
+
+Batch Normailzation:
+technique to normalize the inputs of each layer for stable traning.
+im not writing the function for that it just calculates the mean and std and normalizes each training batch. however it may show issues when the batches are very small like under 8 or smth idk
+to use it in keras just add a kers.Layers.BatchNormalization before each Dense layer input and it will do its own magic.
+for deep networks it can be very op to use so dont forget it. also has some paramets like momentum for like the change rate of the inputs and axis for which axis to normalize or some shit idk.
+
+Gradient Clipping:
+limit the gradients of back propagation to reduce the risk of gradient explosion. can be set by clipvalue or clipnorm when creating an optimizer like SGD
+
+or if youre smart you could Reuse Pretrained Layers that is called transfer learning
+you would find a DNN and take its first layers and freeze the weights then add new layers on top depending on the task and retrain the new model to realize the task you want
+this technique is useful generally when you cant find enough data or label enough of it to train a neural network for it from scratch so you would find a neural network that has
+similar goals to yours and freeze all the layers apart from the last of the layers you stole and add new layers to it for example the output you want
+you can select layers of a model in keras with Model.layers and pick the firest layers then add on top new layers with .add(layers)
+make sure to clone the model with clone_model() and load its weights because cloning only takes its architecture.
+to lock layer weights you can set the layer.trainable False before training for some epochs then continue with a lower learning rate for the next epochs with all of the layers unfrozen
+
+Unsupervised Pretraining:
+an old technique that relies on training each layer individually and lock its weights and add new layers on top,
+when no data is availlable you could pretrain some layers on unlabeled data on autoencoders or GANs, then take the lower layers of GAN's and auto_encoders to fit your supervised training goals by adding output layers
+this was inspired by an old technique where layers would be trained on unlabeled data then weights frozen and add new layers and train them an freeze and so on.
+it was called the greedy-layer-wise Pretraining
+
+pretraining on Auxiliary task:
+if its fucked and you cant find any data for your task then train a model on a task that kinda has the same goals like trying to detect hair styles you would train a model for face recognition then steal the lower layers to train a new model for your niche task
+
+Optimizers:
+SGD base class is ass which why we use lots of different optimizers than SGD alone
+Momentum: keeps track of past gradient decents to build momentum which turns the decent into an acceleration and helps to speed up training against plateaus and may jump local minimas
+implementation is by setting SGD(momentum=n) 
+Nesterov Accelertated Gradient:same philosophy of Momentum however adds a bit of the last gradient decent to the cost function derivative so that it overshoots slightly the gradient which helps a lot for reaching the global minima actually
+implementation is through setting momentum and nesterov=True
+AdaGrad:takes the square of past gradients into a vector and does some magic to calculate the next step, goal of the alg is to decay the learning rate to be faster in steep dimensions. called an adaptive learning rate when such a thing is done
+implementation is by using the AdaGrad optimizer
+RMSProp: better AdaGrad as it solves one issue adagrad had which is it may slow down a bit too fast and never converges to the global optimum, this alg has an absurdly long function but it just adds a decay function to slow down the slowing down process, understand that however you want
+implementation is with the RMSProp optimizer and habing rho and learning_rate as parameters with rho deciding how much it decays, typically 0.9
+Adam: the goat, mix of RMSProp and momentum and im not gonna talk a lot about it, its just good.
+implementation works with Adam optimizer and setting beta_1 (momentum decay or whatever) and beta_2 (decay of RMSProp or rho)
+AdaMax: replaces the l2 norm to l_inf norm and makes it more stable but depends on the dataset so youll just have to experiment.
+implemented with AdaMax optimizer as always
+Nadam: Adam with Nestetov trick on acceleration so might converge slightly faster than Adam
+implements just like any other optimizer
+AdamW: W Chat, adds weight decay to the Adam optimizer which multiplies the weights by a factor of usually 0.99 to keep the weights small and have the model better generalize
+implementation is hidden in optimizers.experimental.AdamW
+
+Learning Rate Scheduling:
+some tchniques for faster technique include scheduling the learning rate as a function or something
+
+Power Scheduling: learning rate is a functiong of iteration number t where N(t)= N0/(1+t/s)*c. c is power and s are steps and are hyperparameters after s steps the rate dropw to N0/2 and then N0/3 and so on
+Exponential Scheduling: N(t) = N0*0.1*(t/s) gradually drops by a facto of 10 every steps
+Piecewise constant scheduling: slows down for a number epochs like N0=0.1 for 5 epochs then N1=0.001 for 50 epochs and so on
+Performance Scheduling: validation error evy N steps and reduce the learning rate by the factor of error
+1cycle Scheduling: linearly increase from N0 to N1 then from N1 to N0 halfway, N0 is usually set to 0.1*N1
+
+to add power scheduling just set decay in SGD() optimizer (inverse of s)
+exponetial can be set as a function then create a learning rate scheduler with callbasck.LearningRateScheduler
+same for piecewisse
+performance is set with ReduceLROnPlateau in callbacks
+
+Avoiding Overfitting:
+L1 and L2 Regularization: you know how it works already just add them as keras.regularizers.l2 or l1
+Dropout:strat of dropping out p percentage of nodes every epoch and adjust the weights without the help of other neurons. done by adding Dropout layers before each Dense Layer
+MCDropout:type shi that uses a weird trick for reducing the probabilities guessed by the model or smth idk. 
+Max-Norm Regularization: caps the weights such as || w ||2 < r where r is the max_norm_parameter and ||.||2 is the l2 norm, reducing r increases the regularizatipn and doesnt allow the weights to go high
+implementation is done with kernel_constraint=keras.constraints.max_norm(norm) when creating a layer
+
+Chapter 12:
+fuck you im not doing it its all sub classes and they all have the same __init__ call build and get_config functions go look at the docs like a grown ass man
